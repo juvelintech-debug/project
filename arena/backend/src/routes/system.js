@@ -8,6 +8,8 @@ const { asyncHandler } = require('../middleware/errorHandler');
 const router = express.Router();
 
 const { version } = require('../../package.json');
+const V = require('../constants/vocabulary');
+const { MAX } = require('../utils/validate');
 
 const startedAt = Date.now();
 
@@ -65,21 +67,41 @@ router.get('/health', asyncHandler(async (req, res) => {
 router.get('/meta', (req, res) => {
   res.json({
     app: config.app,
-    roles: ['Student', 'Company', 'Admin'],
-    applicationStatuses: [
-      'Applied', 'Under Review', 'Shortlisted', 'Interview Scheduled',
-      'Interview Completed', 'Offer Received', 'Accepted', 'Declined',
-      'Not Shortlisted', 'Rejected', 'Withdrawn', 'Expired',
-    ],
-    companyStatuses: ['Pending', 'Approved', 'Rejected', 'Suspended'],
-    jobStatuses: ['Draft', 'Pending Approval', 'Approved', 'Rejected', 'Closed', 'Expired'],
+    // Every list below mirrors an ENUM column in database/schema.sql; the
+    // `schema.test.js` suite fails the build if the two ever disagree, which is
+    // why the SPA can trust these values instead of hardcoding its own copy.
+    roles: V.ROLES,
+    accountStatuses: V.ACCOUNT_STATUSES,
+    companyStatuses: V.COMPANY_STATUSES,
+    jobStatuses: V.JOB_STATUSES,
+    applicationStatuses: V.APPLICATION_STATUSES,
+    applicationStatusGuards: {
+      companyEditable: V.COMPANY_EDITABLE_APPLICATION_STATUSES,
+      studentEditable: V.STUDENT_EDITABLE_APPLICATION_STATUSES,
+      terminal: V.TERMINAL_APPLICATION_STATUSES,
+    },
+    placementStatuses: V.PLACEMENT_STATUSES,
+    skillProficiencies: V.SKILL_PROFICIENCIES,
+    studentGenders: V.STUDENT_GENDERS,
+    companySizes: V.COMPANY_SIZES,
+    interviewStatuses: V.INTERVIEW_STATUSES,
+    interviewModes: V.INTERVIEW_MODES,
+    jobTypes: V.JOB_TYPES,
+    workModes: V.WORK_MODES,
+    salaryUnits: V.SALARY_UNITS,
+    notificationTypes: V.NOTIFICATION_TYPES,
+    aiActivityTypes: V.AI_ACTIVITY_TYPES,
+    aiStatuses: V.AI_STATUSES,
     limits: {
       maxResumeMb: config.uploads.maxResumeMb,
       allowedResumeTypes: config.uploads.allowedExt,
       aiDailyQuota: config.ai.quotaPerStudent,
+      maxNameLength: MAX.name,
+      maxCoverLetterChars: MAX.text,
     },
     readiness: {
       aiEnabled: config.ai.enabled && !!config.ai.apiKey,
+      aiProvider: config.ai.provider,
     },
   });
 });

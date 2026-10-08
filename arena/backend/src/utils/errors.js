@@ -31,4 +31,12 @@ function isDuplicateKey(err) {
   return !!err && (err.code === 'ER_DUP_ENTRY' || /UNIQUE constraint failed|Duplicate entry/i.test(err.message || ''));
 }
 
-module.exports = { ApiError, badRequest, unauthorized, forbidden, notFound, conflict, unprocessable, tooLarge, serviceUnavailable, isDuplicateKey };
+/** True when the database refused a relationship rather than a value. */
+function isForeignKeyError(err) {
+  return !!err && (
+    ['ER_NO_REFERENCED_ROW_2', 'ER_ROW_IS_REFERENCED_2'].includes(err.code)
+    || /FOREIGN KEY constraint failed|a parent row|a child row/i.test(err.message || '')
+  );
+}
+
+module.exports = { ApiError, isForeignKeyError, badRequest, unauthorized, forbidden, notFound, conflict, unprocessable, tooLarge, serviceUnavailable, isDuplicateKey };

@@ -97,6 +97,21 @@ export default function StatusPage() {
           </div>
         </div>
         <hr />
+        <div className="grid grid--3">
+          <div>
+            <div className="detail__label mb-2">Job type</div>
+            <div className="chips">{meta?.jobTypes?.map((r) => <Badge key={r} dot={false}>{r}</Badge>)}</div>
+          </div>
+          <div>
+            <div className="detail__label mb-2">Work mode</div>
+            <div className="chips">{meta?.workModes?.map((r) => <Badge key={r} dot={false}>{r}</Badge>)}</div>
+          </div>
+          <div>
+            <div className="detail__label mb-2">Student placement state</div>
+            <div className="chips">{meta?.placementStatuses?.map((r) => <Badge key={r} dot={false}>{r}</Badge>)}</div>
+          </div>
+        </div>
+        <hr />
         <div className="detail__label mb-2">Application pipeline</div>
         <div className="chips">
           {meta?.applicationStatuses?.map((name, i) => (
@@ -104,6 +119,12 @@ export default function StatusPage() {
               <span className="text-mono">{i + 1}</span> {name}
             </span>
           ))}
+        </div>
+        <div className="mt-4 text-small text-muted">
+          Recruiter-controlled stages: {(meta?.applicationStatusGuards?.companyEditable || []).join(', ')}
+          <br />
+          The only stage a student may set: {(meta?.applicationStatusGuards?.studentEditable || []).join(', ')}.
+          Terminal stages, after which nothing further is recorded: {(meta?.applicationStatusGuards?.terminal || []).join(', ')}.
         </div>
         <div className="row row--between mt-4 text-small text-muted">
           <span>Upload limit: {meta?.limits?.maxResumeMb} MB · types {(meta?.limits?.allowedResumeTypes || []).join(', ')}</span>

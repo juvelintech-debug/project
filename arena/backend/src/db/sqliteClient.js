@@ -19,10 +19,26 @@ const { splitTopLevel, readBalanced, splitStatements } = require('./sqlUtils');
 /* ── statement-level translation (MySQL → SQLite) ─────────────────────────── */
 
 const FUNCTION_RULES = [
+  // Seed data and "upcoming deadline" queries use MySQL date arithmetic so the
+  // demo rows stay in the future however late someone runs them. Order matters:
+  // these must be matched before the bare NOW()/CURDATE() rules rewrite the
+  // inside of the call.
+  [/\bDATE_ADD\s*\(\s*NOW\s*\(\s*\)\s*,\s*INTERVAL\s+(\d+)\s+DAY\s*\)/gi,
+    (m, n) => `datetime('now', 'localtime', '+${n} days')`],
+  [/\bDATE_SUB\s*\(\s*NOW\s*\(\s*\)\s*,\s*INTERVAL\s+(\d+)\s+DAY\s*\)/gi,
+    (m, n) => `datetime('now', 'localtime', '-${n} days')`],
+  [/\bDATE_ADD\s*\(\s*CURDATE\s*\(\s*\)\s*,\s*INTERVAL\s+(\d+)\s+DAY\s*\)/gi,
+    (m, n) => `date('now', 'localtime', '+${n} days')`],
+  [/\bDATE_SUB\s*\(\s*CURDATE\s*\(\s*\)\s*,\s*INTERVAL\s+(\d+)\s+DAY\s*\)/gi,
+    (m, n) => `date('now', 'localtime', '-${n} days')`],
   [/\bNOW\s*\(\s*\)/gi, "datetime('now', 'localtime')"],
   [/\bUTC_TIMESTAMP\s*\(\s*\)/gi, "datetime('now')"],
   [/\bCURDATE\s*\(\s*\)/gi, "date('now')"],
   [/\bIFNULL\s*\(/gi, 'COALESCE('],
+  // MySQL's CHAR_LENGTH counts characters, SQLite's LENGTH counts the same for
+  // the text these CHECKs measure; the name is what SQLite does not know.
+  [/\bCHAR_LENGTH\s*\(/gi, 'LENGTH('],
+  [/\bCONCAT\s*\(/gi, '|| ('],
   [/\bDATE_FORMAT\s*\(([^;]*?),\s*'([^']*)'\s*\)/gi, (m, expr, fmt) => `strftime('${fmt.replace(/%Y/g, '%Y').replace(/%m/g, '%m').replace(/%d/g, '%d')}', ${expr.trim()})`],
   [/\bTIMESTAMPDIFF\s*\(\s*DAY\s*,\s*([^,]+),\s*([^)]+)\)/gi, "CAST(julianday($2) - julianday($1) AS INTEGER)"],
 ];
@@ -173,10 +189,12 @@ function translateIndexStatement(sql) {
 function translateDdl(sql) {
   return splitStatements(sql)
     .map((stmt) => {
-      if (/^\s*CREATE\s+TABLE/i.test(stmt)) return translateTableStatement(stmt);
+      // Function names inside CHECK clauses are MySQL spellings too, so the
+      // rewritten DDL goes through the same statement translation as queries.
+      if (/^\s*CREATE\s+TABLE/i.test(stmt)) return translateStatement(translateTableStatement(stmt));
       if (/^\s*CREATE\s+(UNIQUE\s+)?INDEX/i.test(stmt)) return translateIndexStatement(stmt);
       if (/^\s*(ALTER|DROP|SET|USE)\b/i.test(stmt)) return null; // MySQL-specific maintenance
-      return stmt;
+      return translateStatement(stmt);
     })
     .filter(Boolean);
 }

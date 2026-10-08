@@ -71,6 +71,36 @@ test('translateStatement rewrites the functions used in queries', () => {
   assert.match(b, /datetime\('now', 'localtime'\)/);
 });
 
+test('MySQL date arithmetic used by the seed and the deadline queries is rewritten', () => {
+  const { translateStatement: t } = require('../src/db/sqliteClient');
+  assert.match(t('SELECT DATE_ADD(NOW(), INTERVAL 21 DAY)'), /datetime\('now', 'localtime', '\+21 days'\)/);
+  assert.match(t('SELECT DATE_SUB(NOW(), INTERVAL 3 DAY)'), /datetime\('now', 'localtime', '-3 days'\)/);
+  assert.match(t("WHERE application_deadline >= DATE_ADD(CURDATE(), INTERVAL 14 DAY)"), /date\('now', 'localtime', '\+14 days'\)/);
+  assert.match(t("WHERE application_deadline < DATE_SUB(CURDATE(), INTERVAL 5 DAY)"), /date\('now', 'localtime', '-5 days'\)/);
+  // CHAR_LENGTH is MySQL-only spelling; LENGTH is what SQLite knows.
+  assert.match(t("SELECT CHAR_LENGTH(x) AS n FROM t"), /LENGTH\(x\)/);
+});
+
+test('the seed file relies only on date arithmetic the adapter can translate', () => {
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const seed = fs.readFileSync(path.join(__dirname, '..', '..', 'database', 'seed_demo_data.sql'), 'utf8');
+  for (const m of seed.matchAll(/\b(DATE_ADD|DATE_SUB)\s*\(\s*(\w+\s*\(\s*\)|'[^']*')/gi)) {
+    assert.ok(/^(NOW|CURDATE)\(\s*\)$/i.test(m[2].trim()), `unsupported date base in the seed: ${m[2]}`);
+  }
+  assert.match(seed, /DATE_ADD\(CURDATE\(\), INTERVAL \d+ DAY\)/, 'future deadlines must be relative, not hardcoded');
+});
+
+test('isForeignKeyError recognises both engines and nothing else', () => {
+  const { isForeignKeyError, isDuplicateKey } = require('../src/utils/errors');
+  assert.ok(isForeignKeyError({ message: 'FOREIGN KEY constraint failed' }), 'sqlite wording');
+  assert.ok(isForeignKeyError({ code: 'ER_NO_REFERENCED_ROW_2', message: 'Cannot add or update a child row' }), 'mysql missing parent');
+  assert.ok(isForeignKeyError({ code: 'ER_ROW_IS_REFERENCED_2', message: 'Cannot delete or update a parent row' }), 'mysql blocked delete');
+  assert.ok(!isForeignKeyError({ message: 'Duplicate entry for key uq_users_email' }));
+  assert.ok(!isForeignKeyError(undefined));
+  assert.ok(isDuplicateKey({ code: 'ER_DUP_ENTRY', message: 'x' }));
+});
+
 test('a schema with two CREATE TABLE statements is split and translated one by one', () => {
   const ddl = translateDdl(`
     CREATE TABLE a (id INT AUTO_INCREMENT PRIMARY KEY);

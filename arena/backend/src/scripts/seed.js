@@ -33,12 +33,23 @@ withExit(async () => {
 
   const dbInfo = await db.ping();
   banner('Row counts');
-  for (const table of ['users', 'students', 'companies', 'jobs', 'applications']) {
+  const demoMarkers = [
+    ['users', 'accounts (1 admin, 8 students, 4 recruiters)'],
+    ['students', 'academic profiles'],
+    ['student_skills', 'skill rows'],
+    ['companies', 'recruiter organisations'],
+    ['jobs', 'postings'],
+    ['applications', 'student × job applications'],
+    ['interviews', 'interview slots'],
+    ['notifications', 'inbox rows'],
+    ['ai_activity', 'AI request records'],
+  ];
+  for (const [table, what] of demoMarkers) {
     try {
       const row = await db.one(`SELECT COUNT(*) AS n FROM \`${table}\``);
-      console.log(`  ${table.padEnd(14)} ${row ? row.n : 0}`);
+      console.log(`  ${table.padEnd(16)} ${String(row ? row.n : 0).padStart(4)}  ${what}`);
     } catch {
-      console.log(`  ${table.padEnd(14)} — (table not present yet)`);
+      console.log(`  ${table.padEnd(16)}    —  (table not present yet)`);
     }
   }
 });
