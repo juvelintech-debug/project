@@ -1,0 +1,30 @@
+# Dependencies
+node_modules/
+
+# Local secrets and generated config — .env.example is the tracked template
+.env
+.env.local
+.env.*.local
+
+# Uploads are runtime data, never committed (resumes contain student PII)
+arena/backend/uploads/*
+!arena/backend/uploads/.gitkeep
+
+# Local sandbox/test database file (DB_CLIENT=sqlite)
+*.sqlite
+*.sqlite-journal
+*.sqlite-wal
+*.sqlite-shm
+
+# Build output — regenerate with `npm run build` in arena/frontend
+arena/frontend/dist/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Editors / OS
+.DS_Store
+.idea/
+.vscode/
+*.swp
