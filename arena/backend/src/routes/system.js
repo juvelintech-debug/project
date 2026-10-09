@@ -25,18 +25,15 @@ router.get('/health', asyncHandler(async (req, res) => {
   let database = { status: 'unknown' };
   try {
     const info = await db.ping();
-    database = { status: 'ok', ...info, latencyMs: Date.now() - t0 };
-  } catch (err) {
-    // Report what we tried, not just that it failed: the difference between
-    // "server not running", "wrong password" and "schema missing" decides what
-    // the reader does next, and all three look identical in a generic 500.
+    // Public liveness is not an administrative connection dump. In particular,
+    // SQLite filenames, private hosts and future driver properties stay off wire.
+    database = { status: 'ok', client: db.clientName, verified: info.verified === true, latencyMs: Date.now() - t0 };
+  } catch {
     database = {
       status: 'down',
-      client: config.db.client,
-      database: config.db.database,
-      host: `${config.db.host}:${config.db.port}`,
-      reason: err.message,
-      hint: err.hint,
+      client: db.clientName,
+      reason: 'The placement database is unavailable right now.',
+      hint: 'Contact the placement office. Server operators should check the database service and private DB_* settings.',
     };
   }
 

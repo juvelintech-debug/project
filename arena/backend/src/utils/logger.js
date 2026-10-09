@@ -6,6 +6,9 @@
  */
 
 const SENSITIVE_KEYS = /^(password|password_hash|passwordHash|currentPassword|newPassword|confirmPassword|token|accessToken|refreshToken|authorization|cookie|secret|apiKey|api_key|jwt|session|otp|code)$/i;
+// Cover environment/configuration spellings without hiding nonsecret settings.
+const SENSITIVE_CONFIG_SUFFIX = /(?:password(?:hash)?|passwd|secret|apikey|accesstoken|refreshtoken)$/i;
+const sensitiveKey = (key) => SENSITIVE_KEYS.test(key) || SENSITIVE_CONFIG_SUFFIX.test(key.replace(/[^a-z0-9]/gi, ''));
 const INLINE_PATTERNS = [
   /\b(Bearer)\s+[A-Za-z0-9._-]{8,}/gi,
   /\bAIza[0-9A-Za-z_-]{20,}/g,
@@ -30,7 +33,7 @@ function redact(value, depth = 0) {
   if (typeof value === 'object') {
     const out = {};
     for (const [k, v] of Object.entries(value)) {
-      out[k] = SENSITIVE_KEYS.test(k) ? '[redacted]' : redact(v, depth + 1);
+      out[k] = sensitiveKey(k) ? '[redacted]' : redact(v, depth + 1);
     }
     return out;
   }

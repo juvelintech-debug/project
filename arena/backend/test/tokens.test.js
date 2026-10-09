@@ -36,3 +36,8 @@ test('Bearer parsing never accepts cookie/body/query schemes or multiple tokens'
   assert.equal(bearerFrom(' bearer abc.def.ghi  '), 'abc.def.ghi');
   for (const bad of [undefined, ['Bearer a'], 'Basic abc', 'Bearer a b', 'Bearer', 'abc']) assert.equal(bearerFrom(bad), null);
 });
+
+test('signed expiration values outside the representable Date range are a 401, never an internal exception', () => {
+  const { expiresIn: _expiry, ...withoutExpiry } = options;
+  refused(jwt.sign({ ...payload, exp: Number.MAX_SAFE_INTEGER }, config.jwt.secret, withoutExpiry));
+});

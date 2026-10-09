@@ -66,15 +66,15 @@ export default function StatusPage() {
         <div className="detail-grid">
           <Row label="Status" value={<Badge tone={dbOk ? 'success' : 'danger'} dot={false}>{db.status}</Badge>} />
           <Row label="Client" value={db.client} />
-          <Row label="Schema" value={db.database || '—'} />
+          <Row label="Connection details" value="Kept private by public diagnostics" />
           <Row label="Detail" value={db.message || db.error || db.reason || '—'} />
         </div>
         {!dbOk && (
           <div className="alert alert--warning mt-4">
             <span className="alert__icon" aria-hidden="true">⚠</span>
             <div className="alert__body">
-              <div className="alert__title">MySQL is not running yet</div>
-              <p className="text-small">Start a local MySQL/MariaDB server and run the setup commands from <code>arena/README.md</code>.
+              <div className="alert__title">Placement database unavailable</div>
+              <p className="text-small">Contact the placement office. Server operators can check the database service and private connection settings using <code>arena/README.md</code>.
                 The API stays up on purpose: auth, jobs and applications all need SQL, but the shell, diagnostics and error handling must not depend on them.</p>
             </div>
           </div>

@@ -40,9 +40,11 @@ function verifySession(presented) {
       || typeof decoded.jti !== 'string' || !decoded.jti) {
     throw invalid();
   }
+  const expiration = new Date(decoded.exp * 1000);
+  if (!Number.isFinite(expiration.getTime())) throw invalid();
   return {
     userId: Number(decoded.sub), role: decoded.role, tokenVersion: decoded.tv,
-    jti: decoded.jti, expiresAt: new Date(decoded.exp * 1000).toISOString(),
+    jti: decoded.jti, expiresAt: expiration.toISOString(),
   };
 }
 

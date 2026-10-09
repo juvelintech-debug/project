@@ -104,6 +104,9 @@ function oneOf(f, label, allowedOrOptions, maybeOptions) {
   const options = Array.isArray(allowedOrOptions) ? (maybeOptions || {}) : (allowedOrOptions || {});
   const allowed = Array.from(list || []);
   const { required: isReq = true } = options;
+  // All schema enums are textual. Never coerce objects/arrays or invoke a
+  // caller-supplied toString while validating an untrusted request.
+  if (f != null && typeof f !== 'string') return { error: `${label} must be a text option.`, value: null };
   const v = trimmed(f);
   if (!v) return isReq ? { error: `${label} is required.`, value: null } : { value: null };
   const hit = allowed.find((a) => String(a).toLowerCase() === v.toLowerCase());

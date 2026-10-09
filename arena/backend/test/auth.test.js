@@ -408,3 +408,13 @@ test('unexpected query failures return a generic 500 without SQL, stacks or cred
     for (const forbidden of ['SELECT', 'password_hash', 'test-secret-only', 'stack']) assert.ok(!JSON.stringify(r.body).includes(forbidden));
   } finally { db.one = original; }
 });
+
+test('malformed registration enums return field-level 422 and cannot create accounts', async () => {
+  const before = Number(await db.value('SELECT COUNT(*) FROM users'));
+  for (const body of [student({ gender: { toString: null } }), company({ companySize: { toString: null } }), company({ companySize: ['1-50'] })]) {
+    const r = await call('/auth/register', { method: 'POST', body });
+    assert.equal(r.status, 422); assert.equal(r.body.error.code, 'VALIDATION');
+    assert.ok(r.body.error.fields[body.role === 'Student' ? 'gender' : 'companySize']);
+  }
+  assert.equal(Number(await db.value('SELECT COUNT(*) FROM users')), before);
+});

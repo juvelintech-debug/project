@@ -163,3 +163,23 @@ test('unknown API routes do not echo credentials accidentally included in query 
   assert.equal(res.status, 404); const text = JSON.stringify(await res.json());
   assert.ok(!text.includes('not-a-real-secret')); assert.ok(!text.includes('test-only-token'));
 });
+
+test('public health diagnostics whitelist connection data and never forward raw driver errors', async () => {
+  const db = require('../src/db'); const original = db.ping;
+  try {
+    db.ping = async () => ({ client: 'sqlite', verified: true, database: '/private/fixture-only.sqlite', host: 'fixture-internal-host',
+      password: 'fixture-password-only', token: 'fixture-token-only' });
+    const healthy = await (await fetch(`${base}/api/health`)).json();
+    assert.equal(healthy.database.status, 'ok'); assert.equal(healthy.database.verified, true);
+    for (const value of ['fixture-password-only', 'fixture-token-only', '/private/fixture-only.sqlite', 'fixture-internal-host']) {
+      assert.ok(!JSON.stringify(healthy).includes(value), 'public health must not publish private driver properties');
+    }
+    const privateError = Object.assign(new Error("SELECT password_hash FROM users failed for fixture-db-user; password='fixture-password-only'"),
+      { code: 'ER_ACCESS_DENIED_ERROR', hint: 'internal SQL and fixture-db-user' });
+    db.ping = async () => { throw privateError; };
+    const res = await fetch(`${base}/api/health`); const degraded = await res.json();
+    assert.equal(res.status, 200); assert.equal(degraded.status, 'degraded'); assert.equal(degraded.database.status, 'down');
+    assert.equal(degraded.database.client, 'sqlite'); assert.ok(degraded.database.reason); assert.ok(degraded.database.hint);
+    for (const value of ['fixture-password-only', 'fixture-db-user', 'SELECT', 'password_hash', 'internal SQL']) assert.ok(!JSON.stringify(degraded).includes(value));
+  } finally { db.ping = original; }
+});

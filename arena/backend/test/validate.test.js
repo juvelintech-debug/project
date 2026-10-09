@@ -109,3 +109,11 @@ test('DATE-only values reject rollover, malformed and future dates', () => {
   assert.ok(v.dateOnly('2026-13-01', 'DOB').error);
   assert.ok(v.dateOnly('2099-01-01', 'DOB', { maxDate: 'today' }).error);
 });
+
+test('enum validation rejects structured values without string coercion or exceptions', () => {
+  for (const value of [['Student'], { toString: null }, { value: 'Student' }, true, 1]) {
+    assert.ok(v.oneOf(value, 'Role', ['Student', 'Company', 'Admin']).error);
+    assert.ok(v.oneOf(value, 'Role', { allowed: ['Student'], required: false }).error);
+  }
+  assert.deepEqual(v.oneOf(null, 'Role', { allowed: ['Student'], required: false }), { value: null });
+});

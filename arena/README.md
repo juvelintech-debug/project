@@ -142,7 +142,9 @@ uses actual academic schema fields; no unsupported college field/table is invent
   a distributed production abuse-control service. TRUST_PROXY_HOPS defaults to 0;
   enable only the known reverse-proxy count, never for arbitrary direct clients.
 - Same-origin /api; explicit CLIENT_ORIGIN CORS, no cross-origin credentials,
-  no-store API responses, security headers. Production denies framing; development
+  no-store API responses, security headers. Public health reports connection status
+  without exposing private driver properties, hosts, filenames, credentials or SQL errors.
+  Production denies framing; development
   permits the live-preview iframe. Serve real deployments over HTTPS, set
   NODE_ENV=production, keep DB_CLIENT=mysql and supply a high-entropy JWT_SECRET
   of at least 32 bytes. Use `node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"`
@@ -204,7 +206,7 @@ temporary, labelled SQLite database; it does not reset your .env database.
 browser OS libraries must be installed on the test machine. Reports/screenshots,
 dist, node_modules, .env, uploads and SQLite files are ignored by Git.
 
-Verification for this Phase 3 implementation: **148 backend tests**, **25 frontend
+Verification for this Phase 3 implementation: **153 backend tests**, **25 frontend
 component/unit tests**, **12 Playwright browser integration tests**, and a successful
 production frontend build. Backend tests include existing Phase 1/2 regressions,
 registration/transactions, login, JWT/RBAC, revocation, upgrade/bootstrap,

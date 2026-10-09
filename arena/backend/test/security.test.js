@@ -45,3 +45,11 @@ test('standalone JWTs and bcrypt hashes are redacted even inside errors/SQL diag
   const text = JSON.stringify(logger.redact(new Error(`Unexpected raw value ${token}; INSERT stored ${hash}`)));
   assert.ok(!text.includes(token)); assert.ok(!text.includes(hash)); assert.match(text, /redacted-token/); assert.match(text, /redacted-hash/);
 });
+
+test('environment-style credential fields are redacted, but nonsecret configuration remains useful', () => {
+  const result = logger.redact({ DB_PASSWORD: 'fixture-db-password', JWT_SECRET: 'fixture-jwt-secret', ADMIN_BOOTSTRAP_PASSWORD: 'fixture-admin-password',
+    GEMINI_API_KEY: 'fixture-provider-key', client_secret: 'fixture-client-secret', ACCESS_TOKEN: 'fixture-access-token',
+    NODE_ENV: 'development', JWT_EXPIRES_IN: '2h', BCRYPT_ROUNDS: 10 });
+  for (const key of ['DB_PASSWORD', 'JWT_SECRET', 'ADMIN_BOOTSTRAP_PASSWORD', 'GEMINI_API_KEY', 'client_secret', 'ACCESS_TOKEN']) assert.equal(result[key], '[redacted]');
+  assert.equal(result.NODE_ENV, 'development'); assert.equal(result.JWT_EXPIRES_IN, '2h'); assert.equal(result.BCRYPT_ROUNDS, 10);
+});

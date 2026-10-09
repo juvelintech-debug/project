@@ -29,7 +29,8 @@ async function registerStudent(page) {
 }
 
 test('public pages, health/meta and mobile password controls work', async ({ page, request }) => {
-  const health = await request.get('/api/health'); expect(health.status()).toBe(200); expect((await health.json()).database.client).toBe('sqlite');
+  const health = await request.get('/api/health'); expect(health.status()).toBe(200); const healthData = await health.json(); expect(healthData.database.client).toBe('sqlite');
+  expect(healthData.database).not.toHaveProperty('host'); expect(healthData.database).not.toHaveProperty('database');
   const meta = await (await request.get('/api/meta')).json(); expect(meta.roles).toEqual(['Student', 'Company', 'Admin']);
   await page.setViewportSize({ width: 390, height: 844 }); await page.goto('/login');
   await expect(page.getByRole('heading', { name: 'Welcome back' })).toBeVisible();
@@ -39,6 +40,7 @@ test('public pages, health/meta and mobile password controls work', async ({ pag
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   await page.goto('/register/company'); await expect(page.getByRole('button', { name: 'Register company' })).toBeVisible();
   await page.goto('/status'); await expect(page.getByText('Database readiness', { exact: true })).toBeVisible();
+  await expect(page.getByText('Kept private by public diagnostics', { exact: true })).toBeVisible();
 });
 
 test('anonymous users cannot enter any protected role workspace', async ({ page, request }) => {
