@@ -9,10 +9,10 @@ import SystemStatus from './SystemStatus';
  * service strip, and a content region every page renders into. Navigation is
  * data-driven (see src/nav.js) and filtered by role.
  */
-export default function AppShell({ user, onLogout, title, children }) {
+export default function AppShell({ user, onLogout, signingOut, title, children }) {
   const [navOpen, setNavOpen] = useState(false);
   const location = useLocation();
-  const { health } = useMeta();
+  const { health, meta } = useMeta();
 
   useEffect(() => { setNavOpen(false); }, [location.pathname]);
 
@@ -56,8 +56,8 @@ export default function AppShell({ user, onLogout, title, children }) {
           <div className="sidebar__footer">
             {user
               ? <div className="row row--between"><span className="truncate">{user.fullName}</span>
-                  <button type="button" className="btn btn--sm btn--ghost" style={{ color: '#fff' }} onClick={onLogout}>Sign out</button></div>
-              : <span>v{health?.version || '1'} · demo build</span>}
+                  <button type="button" className="btn btn--sm btn--ghost" style={{ color: '#fff' }} onClick={onLogout} disabled={signingOut}>{signingOut ? 'Signing out…' : 'Sign out'}</button></div>
+              : <span>v{health?.version || '1'} · Career Services</span>}
           </div>
         </aside>
 
@@ -76,6 +76,7 @@ export default function AppShell({ user, onLogout, title, children }) {
               </div>
             )}
           </header>
+          {meta?.demoMode && <div className="demo-banner" role="note">Seed/demo environment · not real records. Use test details only.</div>}
           <main className="content" id="main">{children}</main>
         </div>
       </div>

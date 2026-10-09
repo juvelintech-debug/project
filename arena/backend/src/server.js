@@ -19,7 +19,7 @@ async function start() {
       env: config.env,
       dbClient: db.clientName,
       uploads: config.paths.uploads,
-      ai: config.ai.enabled ? (config.ai.apiKey ? 'configured' : 'no key — fallback mode') : 'disabled',
+      ai: config.ai.enabled ? (config.ai.apiKey ? 'configured' : 'no key — AI endpoints reserved for later phases') : 'disabled',
     });
   });
 
@@ -36,7 +36,7 @@ async function start() {
     logger.error('database unavailable at startup', {
       reason: db.lastConnectError,
       hint: db.clientName === 'mysql'
-        ? 'Start MySQL, then: cd arena/backend && npm run db:create && npm run db:migrate && npm run db:seed'
+        ? 'Start MySQL and configure DB_*. Fresh DB: db:create, db:migrate, admin:bootstrap. Existing Phase 2 DB: db:upgrade:auth (no reset or seed).'
         : 'Set DB_CLIENT=mysql in .env for a real deployment',
     });
   }

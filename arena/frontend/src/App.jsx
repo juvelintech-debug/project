@@ -1,30 +1,51 @@
-import { useState } from 'react';
-import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
+import { Navigate, Outlet, Route, Routes, useLocation } from 'react-router-dom';
 import AppShell from './components/AppShell';
+import ProtectedRoute, { PublicOnly, StartPage } from './components/ProtectedRoute';
+import { useAuth } from './context/AuthContext';
 import { PAGE_TITLES } from './nav';
 import StatusPage from './pages/StatusPage';
 import NotFoundPage from './pages/NotFoundPage';
+import LoginPage from './pages/LoginPage';
+import RegisterPage from './pages/RegisterPage';
+import AccountPage from './pages/AccountPage';
+import WorkspacePage from './pages/WorkspacePage';
+import AdminAccountsPage from './pages/AdminAccountsPage';
+import AdminCompaniesPage from './pages/AdminCompaniesPage';
+import AccessDeniedPage from './pages/AccessDeniedPage';
 
-/**
- * Route table.
- *
- * Phase 1 ships the shell + diagnostics only. Auth (Phase 3) will wrap these
- * routes in a RequireAuth/RoleGate and register the student, company and admin
- * workspaces; the shell and API client below are what those pages plug into.
- */
+function Shell() {
+  const { user, logout, signingOut } = useAuth(); const location = useLocation();
+  return <AppShell user={user} onLogout={logout} signingOut={signingOut} title={PAGE_TITLES[location.pathname] || 'Placement Portal'}>
+    <Outlet key={user?.id || 'public'} />
+  </AppShell>;
+}
 export default function App() {
-  const location = useLocation();
-  const [user] = useState(null); // set by AuthProvider from Phase 3
-
-  const title = PAGE_TITLES[location.pathname] || 'Placement Portal';
-
-  return (
-    <AppShell user={user} title={title}>
-      <Routes>
-        <Route path="/" element={<Navigate to="/status" replace />} />
-        <Route path="/status" element={<StatusPage />} />
-        <Route path="*" element={<NotFoundPage />} />
-      </Routes>
-    </AppShell>
-  );
+  return <Routes>
+    <Route element={<PublicOnly />}>
+      <Route path="/login" element={<LoginPage />} />
+      <Route path="/register" element={<Navigate to="/register/student" replace />} />
+      <Route path="/register/student" element={<RegisterPage role="Student" key="student-registration" />} />
+      <Route path="/register/company" element={<RegisterPage role="Company" key="company-registration" />} />
+    </Route>
+    <Route element={<Shell />}>
+      <Route path="/" element={<StartPage />} />
+      <Route path="/status" element={<StatusPage />} />
+      <Route element={<ProtectedRoute />}>
+        <Route path="/account" element={<AccountPage />} />
+        <Route path="/access-denied" element={<AccessDeniedPage />} />
+      </Route>
+      <Route element={<ProtectedRoute roles={['Student']} />}>
+        <Route path="/student" element={<WorkspacePage role="Student" />} />
+      </Route>
+      <Route element={<ProtectedRoute roles={['Company']} />}>
+        <Route path="/company" element={<WorkspacePage role="Company" />} />
+      </Route>
+      <Route element={<ProtectedRoute roles={['Admin']} />}>
+        <Route path="/admin" element={<WorkspacePage role="Admin" />} />
+        <Route path="/admin/accounts" element={<AdminAccountsPage />} />
+        <Route path="/admin/companies" element={<AdminCompaniesPage />} />
+      </Route>
+      <Route path="*" element={<NotFoundPage />} />
+    </Route>
+  </Routes>;
 }

@@ -14,7 +14,7 @@ function createApp() {
   const app = express();
 
   app.disable('x-powered-by');
-  app.set('trust proxy', true);
+  app.set('trust proxy', config.trustProxy);
 
   /* Correlation id: the user can quote it, we can find it in the log. */
   app.use((req, res, next) => {
@@ -26,7 +26,8 @@ function createApp() {
   /* Baseline response headers. CSP is what keeps a stored XSS payload inert. */
   app.use((req, res, next) => {
     res.setHeader('X-Content-Type-Options', 'nosniff');
-    res.setHeader('X-Frame-Options', 'DENY');
+    // Production disallows embedding; dev must work in Arena's framed preview.
+    if (config.isProd) res.setHeader('X-Frame-Options', 'DENY');
     res.setHeader('Referrer-Policy', 'no-referrer');
     res.setHeader('Permissions-Policy', 'geolocation=(), microphone=(), camera=()');
     res.setHeader(
@@ -41,7 +42,7 @@ function createApp() {
         "object-src 'none'",
         "base-uri 'self'",
         "form-action 'self'",
-        "frame-ancestors 'none'",
+        ...(config.isProd ? ["frame-ancestors 'none'"] : []),
       ].join('; ')
     );
     next();
@@ -70,21 +71,26 @@ function createApp() {
     app.use((req, res, next) => {
       const t0 = Date.now();
       res.on('finish', () => {
-        logger.info(`${req.method} ${req.originalUrl} ${res.statusCode} ${Date.now() - t0}ms`);
+        logger.info(`${req.method} ${req.path} ${res.statusCode} ${Date.now() - t0}ms`);
       });
       next();
     });
   }
 
   /* API */
+  app.use('/api', (req, res, next) => { res.setHeader('Cache-Control', 'no-store'); next(); });
   app.use('/api', require('./routes/system'));
+  app.use('/api/auth', require('./routes/auth'));
+  app.use('/api/admin', require('./routes/admin'));
+  app.use('/api/student', require('./routes/student'));
+  app.use('/api/company', require('./routes/company'));
 
   /* Built SPA, if present (production single-process deploy). */
   const dist = config.paths.frontendDist;
   if (fs.existsSync(dist)) {
     app.use(express.static(dist, { index: false, maxAge: config.isProd ? '1h' : 0 }));
     // Client-side routes must fall through to index.html …
-    app.get(/^\/(?!api\/).*/, (req, res, next) => {
+    app.get(/^\/(?!api(?:\/|$)).*/i, (req, res, next) => {
       // … but a URL that looks like a file must 404 instead. Serving index.html
       // for a missing hashed asset turns a 404 into a 200 text/html response that
       // the browser then fails to parse as a module — a silent, confusing bug.

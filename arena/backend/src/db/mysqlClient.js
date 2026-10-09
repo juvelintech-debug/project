@@ -73,9 +73,15 @@ module.exports = {
       return { insertId: result.insertId, affectedRows: result.affectedRows, changedRows: result.changedRows };
     }
 
-    async function tx(work) {
+    async function tx(work, { advisoryLock } = {}) {
       const conn = await pool.getConnection();
+      let locked = false;
       try {
+        if (advisoryLock) {
+          const [rows] = await conn.execute('SELECT GET_LOCK(?, 10) AS acquired', [advisoryLock]);
+          if (Number(rows[0]?.acquired) !== 1) throw new Error('Administrator bootstrap is already running. Try again shortly.');
+          locked = true;
+        }
         await conn.beginTransaction();
         const result = await work(bind(conn));
         await conn.commit();
@@ -84,6 +90,10 @@ module.exports = {
         try { await conn.rollback(); } catch { /* rollback best-effort */ }
         throw friendlyError(err);
       } finally {
+        // Release AFTER commit/rollback, on the same connection that acquired it.
+        if (locked) {
+          try { await conn.execute('SELECT RELEASE_LOCK(?)', [advisoryLock]); } catch { /* connection may be gone */ }
+        }
         conn.release();
       }
     }
@@ -100,11 +110,11 @@ module.exports = {
           return rows;
         },
         async one(sql, params = []) {
-          const rows = await conn.query(sql, params);
+          const [rows] = await conn.execute(sql, params);
           return rows.length ? rows[0] : null;
         },
         async value(sql, params = []) {
-          const rows = await conn.query(sql, params);
+          const [rows] = await conn.execute(sql, params);
           if (!rows.length) return null;
           const row = rows[0];
           return row[Object.keys(row)[0]];

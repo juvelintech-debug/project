@@ -5,7 +5,7 @@
  * Nothing that looks like a secret may reach stdout, a log file or the client.
  */
 
-const SENSITIVE_KEYS = /^(password|passwordHash|token|accessToken|refreshToken|authorization|cookie|secret|apiKey|api_key|jwt|session|otp|code)$/i;
+const SENSITIVE_KEYS = /^(password|password_hash|passwordHash|currentPassword|newPassword|confirmPassword|token|accessToken|refreshToken|authorization|cookie|secret|apiKey|api_key|jwt|session|otp|code)$/i;
 const INLINE_PATTERNS = [
   /\b(Bearer)\s+[A-Za-z0-9._-]{8,}/gi,
   /\bAIza[0-9A-Za-z_-]{20,}/g,
@@ -17,6 +17,8 @@ function redactText(value) {
   out = out.replace(INLINE_PATTERNS[0], '$1 [redacted]');
   out = out.replace(INLINE_PATTERNS[1], '[redacted-key]');
   out = out.replace(INLINE_PATTERNS[2], (m, key) => `${key}=[redacted]`);
+  out = out.replace(/\$2[aby]\$\d{2}\$[./A-Za-z0-9]{53}/g, '[redacted-hash]');
+  out = out.replace(/\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b/g, '[redacted-token]');
   return out;
 }
 

@@ -16,7 +16,7 @@ export function MetaProvider({ children }) {
   const [loading, setLoading] = useState(true);
 
   const refresh = useCallback(async () => {
-    const [m, h] = await Promise.allSettled([api.get('/meta'), api.get('/health')]);
+    const [m, h] = await Promise.allSettled([api.get('/meta', { auth: false }), api.get('/health', { auth: false })]);
     if (m.status === 'fulfilled') setMeta(m.value);
     if (h.status === 'fulfilled') setHealth(h.value);
     setError(m.status === 'rejected' ? m.reason : null);
@@ -32,7 +32,7 @@ export function MetaProvider({ children }) {
     loading,
     refresh,
     /** false until /api/meta says the backend has an AI provider configured */
-    aiAvailable: Boolean(meta?.ai?.enabled),
+    aiAvailable: Boolean(meta?.readiness?.aiEnabled),
     limits: meta?.limits || {},
   }), [meta, health, error, loading, refresh]);
 

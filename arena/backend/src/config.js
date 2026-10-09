@@ -35,7 +35,12 @@ const isProd = NODE_ENV === 'production';
  */
 function resolveJwtSecret() {
   const fromEnv = env('JWT_SECRET');
-  if (fromEnv) return fromEnv;
+  if (fromEnv) {
+    if (isProd && Buffer.byteLength(fromEnv, 'utf8') < 32) {
+      throw new Error('JWT_SECRET must contain at least 32 bytes in production. Generate it with crypto.randomBytes(48).');
+    }
+    return fromEnv;
+  }
 
   if (isProd) {
     throw new Error(
@@ -66,10 +71,26 @@ const config = {
   isProd,
   port: int('PORT', 4000),
   clientOrigin: env('CLIENT_ORIGIN', 'http://localhost:5173'),
+  // Only enable when all traffic goes through that many trusted reverse proxies.
+  // Off by default: otherwise a caller can forge X-Forwarded-For to bypass limits.
+  trustProxy: Math.max(0, int('TRUST_PROXY_HOPS', 0)),
+  demoMode: bool('DEMO_MODE', false),
 
   jwt: {
     secret: resolveJwtSecret(),
     expiresIn: env('JWT_EXPIRES_IN', '2h'),
+    // Pinned, so a token claiming alg=none or HS384 is never accepted.
+    algorithms: ['HS256'],
+    issuer: 'placement-portal',
+  },
+
+  security: {
+    // Keep hashing practical on a college server; never accept a cost below 10.
+    bcryptRounds: Math.min(12, Math.max(10, int('BCRYPT_ROUNDS', 10))),
+    loginMaxAttempts: Math.max(1, int('LOGIN_MAX_ATTEMPTS', 6)),
+    loginWindowMinutes: Math.max(1, int('LOGIN_WINDOW_MINUTES', 15)),
+    loginPerIpMaxAttempts: Math.max(1, int('LOGIN_PER_IP_MAX_ATTEMPTS', 60)),
+    registerPerHourPerIp: Math.max(1, int('REGISTER_PER_HOUR_PER_IP', 12)),
   },
 
   db: {

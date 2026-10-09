@@ -15,7 +15,9 @@
     "db:seed": "node src/scripts/seed.js",
     "db:reset": "node src/scripts/migrate.js --fresh && node src/scripts/seed.js",
     "test": "node --test test/*.test.js",
-    "test:watch": "node --test --watch test/*.test.js"
+    "test:watch": "node --test --watch test/*.test.js",
+    "db:upgrade:auth": "node src/scripts/upgradeAuth.js",
+    "admin:bootstrap": "node src/scripts/bootstrapAdmin.js"
   },
   "dependencies": {
     "bcryptjs": "^3.0.2",

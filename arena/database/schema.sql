@@ -48,6 +48,11 @@ CREATE TABLE IF NOT EXISTS `users` (
   `full_name`     VARCHAR(150)     NOT NULL,
   `status`        ENUM('Active','Inactive','Suspended') NOT NULL DEFAULT 'Active'
                                     COMMENT 'Inactive/Suspended cannot sign in',
+  -- Every JWT carries this number. Raising it invalidates every token already
+  -- issued to the account, which is what makes logout, a password change and an
+  -- admin suspension actually take effect instead of waiting for expiry.
+  `token_version` INT UNSIGNED     NOT NULL DEFAULT 0
+                                    COMMENT 'raising it revokes every session issued to this account',
   `last_login_at` DATETIME         NULL DEFAULT NULL,
   `created_at`    DATETIME         NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at`    DATETIME         NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -59,6 +64,7 @@ CREATE TABLE IF NOT EXISTS `users` (
   CONSTRAINT `chk_users_hash_is_bcrypt` CHECK (
     `password_hash` LIKE '$2%' AND CHAR_LENGTH(`password_hash`) BETWEEN 55 AND 100
   ),
+  CONSTRAINT `chk_users_token_version` CHECK (`token_version` >= 0),
   CONSTRAINT `chk_users_name_present` CHECK (CHAR_LENGTH(TRIM(`full_name`)) >= 2)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
   COMMENT='Authentication row for students, recruiters and the placement office';

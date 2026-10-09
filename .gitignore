@@ -28,3 +28,7 @@ npm-debug.log*
 .idea/
 .vscode/
 *.swp
+
+# Browser-test reports/screenshots are regenerated, never committed
+arena/frontend/test-results/
+arena/frontend/playwright-report/

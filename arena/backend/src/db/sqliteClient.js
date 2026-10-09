@@ -208,6 +208,7 @@ function createSqliteClient(config) {
 
   const db = new DatabaseSync(file);
   db.exec('PRAGMA foreign_keys = ON');
+  db.exec('PRAGMA busy_timeout = 5000');
 
   function coerce(params) {
     return params.map((v) => {
@@ -264,16 +265,22 @@ function createSqliteClient(config) {
     return { raw, query, one, value, insert, execute };
   }
 
-  async function tx(work) {
-    db.exec('BEGIN');
-    try {
-      const result = await work(bind());
-      db.exec('COMMIT');
-      return result;
-    } catch (err) {
-      try { db.exec('ROLLBACK'); } catch { /* already rolled back */ }
-      throw err;
-    }
+  // One connection: serialize transactions instead of allowing nested BEGINs.
+  let transactionQueue = Promise.resolve();
+  function tx(work) {
+    const result = transactionQueue.then(async () => {
+      db.exec('BEGIN IMMEDIATE');
+      try {
+        const value = await work(bind());
+        db.exec('COMMIT');
+        return value;
+      } catch (err) {
+        try { db.exec('ROLLBACK'); } catch { /* already rolled back */ }
+        throw err;
+      }
+    });
+    transactionQueue = result.catch(() => {});
+    return result;
   }
 
   function execScript(sql) {

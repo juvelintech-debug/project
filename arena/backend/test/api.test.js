@@ -81,7 +81,7 @@ test('an unknown API route is a JSON 404 with a trace id, never the SPA shell', 
 
   const body = await res.json();
   assert.equal(body.error.code, 'NOT_FOUND');
-  assert.match(body.error.message, /No API route matches GET \/api\/does-not-exist/);
+  assert.match(body.error.message, /No API route matches this GET request/);
   assert.ok(body.error.requestId, 'errors carry the request id so a screenshot is enough to debug');
 });
 
@@ -107,7 +107,8 @@ test('a malformed JSON body becomes a 400 with a readable message, not a stack t
 test('every response carries the hardening headers the CSP story depends on', async () => {
   const res = await fetch(`${base}/api/health`);
   assert.equal(res.headers.get('x-content-type-options'), 'nosniff');
-  assert.equal(res.headers.get('x-frame-options'), 'DENY');
+  assert.equal(res.headers.get('x-frame-options'), config.isProd ? 'DENY' : null);
+  if (!config.isProd) assert.doesNotMatch(res.headers.get('content-security-policy'), /frame-ancestors 'none'/);
   assert.equal(res.headers.get('referrer-policy'), 'no-referrer');
   assert.match(res.headers.get('content-security-policy'), /default-src 'self'/);
   assert.match(res.headers.get('content-security-policy'), /connect-src 'self'/);
@@ -131,4 +132,34 @@ test('the built SPA is served from the same origin when a bundle exists', async 
   // otherwise the browser silently parses HTML as a JavaScript module.
   const missing = await fetch(`${base}/assets/definitely-not-here.js`);
   assert.equal(missing.status, 404);
+});
+
+
+test('production still rejects framing while development supports the live preview', async () => {
+  const wasProd = config.isProd;
+  try {
+    config.isProd = true;
+    const res = await fetch(`${base}/api/meta`);
+    assert.equal(res.headers.get('x-frame-options'), 'DENY');
+    assert.match(res.headers.get('content-security-policy'), /frame-ancestors 'none'/);
+  } finally { config.isProd = wasProd; }
+});
+
+
+test('the bare /api prefix is a JSON 404 instead of the SPA fallback', async () => {
+  const result = await fetch(`${base}/api`); assert.equal(result.status, 404);
+  assert.match(result.headers.get('content-type'), /application\/json/);
+});
+
+test('case-insensitive API prefixes never fall through to the SPA', async () => {
+  for (const path of ['/API', '/API/does-not-exist']) {
+    const res = await fetch(`${base}${path}`); assert.equal(res.status, 404);
+    assert.match(res.headers.get('content-type'), /application\/json/); assert.equal((await res.json()).error.code, 'NOT_FOUND');
+  }
+});
+
+test('unknown API routes do not echo credentials accidentally included in query strings', async () => {
+  const res = await fetch(`${base}/api/does-not-exist?password=not-a-real-secret&token=test-only-token`);
+  assert.equal(res.status, 404); const text = JSON.stringify(await res.json());
+  assert.ok(!text.includes('not-a-real-secret')); assert.ok(!text.includes('test-only-token'));
 });

@@ -9,7 +9,7 @@ const router = express.Router();
 
 const { version } = require('../../package.json');
 const V = require('../constants/vocabulary');
-const { MAX } = require('../utils/validate');
+const { MAX, PASSWORD_POLICY } = require('../utils/validate');
 
 const startedAt = Date.now();
 
@@ -53,7 +53,7 @@ router.get('/health', asyncHandler(async (req, res) => {
       provider: config.ai.provider,
       model: config.ai.model,
       // Never reports the key itself, only whether one exists.
-      note: config.ai.enabled ? (config.ai.apiKey ? 'ready' : 'no API key — deterministic fallbacks in use') : 'disabled by configuration',
+      note: config.ai.enabled ? (config.ai.apiKey ? 'key configured; AI endpoints are reserved for later phases' : 'no API key; AI workflows are reserved for later phases') : 'disabled by configuration',
     },
     timestamp: new Date().toISOString(),
   });
@@ -67,6 +67,8 @@ router.get('/health', asyncHandler(async (req, res) => {
 router.get('/meta', (req, res) => {
   res.json({
     app: config.app,
+    demoMode: config.demoMode,
+    auth: { passwordPolicy: PASSWORD_POLICY, registrationRoles: V.ROLES.filter((role) => role !== 'Admin') },
     // Every list below mirrors an ENUM column in database/schema.sql; the
     // `schema.test.js` suite fails the build if the two ever disagree, which is
     // why the SPA can trust these values instead of hardcoding its own copy.

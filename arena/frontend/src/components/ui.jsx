@@ -74,6 +74,7 @@ export function ErrorState({ error, onRetry }) {
       <div className="alert__body">
         <div className="alert__title">Something went wrong</div>
         <div>{error?.message || 'Unexpected error.'}</div>
+        {error?.hint && <p className="text-small mt-2">{error.hint}</p>}
         {error?.requestId && <div className="text-mono text-small mt-2">ref: {error.requestId}</div>}
       </div>
       {onRetry && <button type="button" className="btn btn--sm btn--secondary" onClick={onRetry}>Retry</button>}
@@ -83,19 +84,35 @@ export function ErrorState({ error, onRetry }) {
 
 export function Modal({ title, onClose, children, footer, wide }) {
   const boxRef = useRef(null);
+  const closeRef = useRef(onClose);
+  closeRef.current = onClose;
   useEffect(() => {
-    const onKey = (e) => { if (e.key === 'Escape') onClose?.(); };
-    document.addEventListener('keydown', onKey);
-    const prev = document.body.style.overflow;
+    const previousFocus = document.activeElement;
+    const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
-    boxRef.current?.focus();
-    return () => { document.removeEventListener('keydown', onKey); document.body.style.overflow = prev; };
-  }, [onClose]);
+    const focusable = () => Array.from(boxRef.current?.querySelectorAll('button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled), a[href], [tabindex="0"]') || []);
+    (focusable()[0] || boxRef.current)?.focus();
+    const onKey = (event) => {
+      if (event.key === 'Escape') { event.preventDefault(); closeRef.current?.(); }
+      if (event.key === 'Tab') {
+        const items = focusable(); const first = items[0]; const last = items.at(-1);
+        if (!first) { event.preventDefault(); boxRef.current?.focus(); }
+        else if (event.shiftKey && (document.activeElement === first || document.activeElement === boxRef.current)) { event.preventDefault(); last.focus(); }
+        else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+      }
+    };
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      document.body.style.overflow = previousOverflow;
+      if (previousFocus?.isConnected) previousFocus.focus();
+    };
+  }, []);
 
   return (
     <div className="modal-backdrop" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose?.(); }}>
       <div className={`modal${wide ? ' modal--wide' : ''}`} role="dialog" aria-modal="true" aria-label={title || 'Dialog'}
-           ref={boxRef} tabIndex={-1} onKeyDown={(e) => { if (e.key === 'Escape') onClose?.(); }}>
+           ref={boxRef} tabIndex={-1}>
         <header className="modal__head">
           <h3>{title}</h3>
           <button type="button" className="modal__close" onClick={onClose} aria-label="Close">×</button>
@@ -145,8 +162,8 @@ export function Field({ label, name, error, hint, required, children, className 
         </label>
       )}
       {children}
-      {hint && !error && <span className="field__hint">{hint}</span>}
-      {error && <span className="field__error" role="alert">⚠ {error}</span>}
+      {hint && !error && <span className="field__hint" id={`${name}-hint`}>{hint}</span>}
+      {error && <span className="field__error" id={`${name}-error`} role="alert">⚠ {error}</span>}
     </div>
   );
 }

@@ -88,3 +88,24 @@ test('a clean Fields passes through without throwing', () => {
 test('nowSql produces the format MySQL DATETIME accepts', () => {
   assert.match(v.nowSql(), /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/);
 });
+
+
+test('bcrypt byte ceiling also rejects multibyte passwords shorter than 72 characters', () => {
+  assert.match(v.password(`A1${'अ'.repeat(30)}`).error, /UTF-8 bytes/);
+  assert.ok(v.password(['Password@123']).error);
+  assert.ok(v.required({ text: 'name' }, 'Name').error);
+  assert.ok(v.number(true, 'CGPA').error);
+});
+
+test('collect supports optional enum options and aggregates values without throwing early', () => {
+  const f = v.collect({ role: { fn: v.oneOf, options: { allowed: ['Student', 'Company'], required: false } },
+    email: { fn: v.email } }, { role: '', email: ' TEST@COLLEGE.EDU ' });
+  f.throwIfInvalid(); assert.deepEqual(f.values, { role: null, email: 'test@college.edu' });
+});
+
+test('DATE-only values reject rollover, malformed and future dates', () => {
+  assert.deepEqual(v.dateOnly('2024-02-29', 'DOB'), { value: '2024-02-29' });
+  assert.ok(v.dateOnly('2026-02-30', 'DOB').error);
+  assert.ok(v.dateOnly('2026-13-01', 'DOB').error);
+  assert.ok(v.dateOnly('2099-01-01', 'DOB', { maxDate: 'today' }).error);
+});

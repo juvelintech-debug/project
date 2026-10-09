@@ -15,18 +15,19 @@ const API_TARGET = process.env.VITE_API_TARGET || 'http://127.0.0.1:4000';
  */
 export default defineConfig({
   plugins: [react()],
+  test: { environment: 'jsdom', setupFiles: ['./test/setup.js'], include: ['test/**/*.test.{js,jsx}'], clearMocks: true },
   server: {
     host: '0.0.0.0',
     port: Number(process.env.PORT) || 5173,
     strictPort: false,
-    allowedHosts: true,
+    allowedHosts: ['localhost', '.localhost', '.e2b.app'],
     proxy: {
       '/api': { target: API_TARGET, changeOrigin: false },
       // Signed, short-lived resume downloads — same path as production.
       '/uploads': { target: API_TARGET, changeOrigin: false },
     },
   },
-  preview: { host: '0.0.0.0', port: 4173, allowedHosts: true },
+  preview: { host: '0.0.0.0', port: 4173, allowedHosts: ['localhost', '.localhost', '.e2b.app'] },
   build: {
     outDir: 'dist',
     sourcemap: false,

@@ -676,3 +676,26 @@ table.table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
   .card { box-shadow: none; border-color: #ccc; break-inside: avoid; }
   body { background: #fff; }
 }
+
+/* Phase 3: authentication and verified workspaces, reusing the design tokens. */
+.auth__brand { display: flex; align-items: center; gap: 12px; color: #fff; font-weight: 700; }
+.auth__brand:hover { text-decoration: none; }
+.auth__eyebrow { color: var(--accent-100); letter-spacing: .12em; text-transform: uppercase; font-size: .72rem; margin-top: 48px; }
+.auth__aside h1 { font-size: clamp(2rem, 3.2vw, 3rem); line-height: 1.18; }
+.auth__point span:first-child { font-family: var(--font-mono); font-size: .75rem; padding-top: 4px; }
+.auth__card--wide { max-width: 560px; }
+.auth__panel { padding-top: 48px; padding-bottom: 48px; }
+.auth__tab { text-align: center; }
+.auth__help { padding: 12px 0; border-top: 1px solid var(--ink-200); }
+.auth__help summary { cursor: pointer; font-size: .84rem; color: var(--brand-600); font-weight: 600; }
+.auth__mobile-brand { display: none; color: var(--brand-600); font-weight: 700; margin-bottom: 24px; }
+.demo-logins { display: grid; gap: 6px; margin-top: 16px; font-size: .78rem; overflow-wrap: anywhere; }
+.demo-logins dt { font-weight: 700; margin-top: 8px; }
+.demo-banner { padding: 9px 24px; background: #fffbeb; color: #85680c; font-size: .78rem; border-bottom: 1px solid #ffe6a6; }
+.workspace-welcome { padding: 28px; border-radius: var(--radius-lg); background: linear-gradient(110deg, var(--brand-900), var(--brand-700)); color: white; display: flex; justify-content: space-between; gap: 16px; align-items: flex-start; }
+.workspace-welcome h1 { color: white; margin: 8px 0; font-size: 1.8rem; }
+.workspace-welcome p { color: #dbe4ff; max-width: 64ch; font-size: .9rem; }
+.workspace-welcome__eyebrow { font-size: .7rem; text-transform: uppercase; letter-spacing: .12em; color: var(--accent-100); }
+.session-problem { max-width: 640px; padding: 32px; margin: 6vh auto; }
+@media (max-width: 960px) { .auth__mobile-brand { display: block; } }
+@media (max-width: 560px) { .auth__panel { padding: 28px 20px; } .workspace-welcome { padding: 20px; flex-wrap: wrap; } .form__row { grid-template-columns: 1fr; } }

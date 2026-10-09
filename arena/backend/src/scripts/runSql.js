@@ -12,6 +12,7 @@ const fs = require('fs');
 const path = require('path');
 const config = require('../config');
 const db = require('../db');
+const { redactText } = require('../utils/logger');
 
 const DB_DIR = path.resolve(config.paths.root, '..', 'database');
 
@@ -53,10 +54,10 @@ async function withExit(fn) {
     process.exit(0);
   } catch (err) {
     await db.close().catch(() => {});
-    console.error(`\n\u001b[31mFailed:\u001b[0m ${err.friendly ? err.message : err.sqlMessage || err.message}`);
+    console.error(`\n\u001b[31mFailed:\u001b[0m ${redactText(err.friendly ? err.message : err.sqlMessage || err.message)}`);
     if (err.scriptPosition) {
       console.error(`  statement ${err.scriptPosition} of the file:`);
-      console.error(`    ${String(err.scriptStatement).replace(/\s+/g, ' ')}${err.scriptStatement && err.scriptStatement.length >= 160 ? ' …' : ''}`);
+      console.error(`    ${redactText(String(err.scriptStatement).replace(/\s+/g, ' '))}${err.scriptStatement && err.scriptStatement.length >= 160 ? ' …' : ''}`);
     }
     if (!err.friendly && err.code && /ECONNREFUSED|ER_ACCESS|PROTOCOL|UNKNOWN/i.test(String(err.code))) {
       console.error(`\nCannot reach MySQL at ${config.db.host}:${config.db.port} as "${config.db.user}".`);
